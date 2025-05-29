@@ -34,7 +34,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-       await client.connect();
+       //await client.connect();
     
        const newsCollection = client.db('newsDB').collection('news');
        const newsUserCollection = client.db('newsDB').collection('newsUser');
@@ -98,20 +98,49 @@ async function run() {
         res.send(result);
        })
 
+      app.get('/newsUser/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = await newsUserCollection.findOne({ email: email });
+            if(user) {
+                res.send(user);
+            } else {
+                res.status(404).send({ message: 'User not found' });
+            }
+        });
+
+        
+       app.get('/users/admin/:email', async (req, res) => {
+            const email = req.params.email;
+
+            try {
+              const user = await newsUserCollection.findOne({ email: email });
+
+              if (user && user.role === 'admin') {
+                res.send({ isAdmin: true });
+              } else {
+                res.send({ isAdmin: false });
+              }
+            } catch (error) {
+              console.error(error);
+              res.status(500).send({ isAdmin: false });
+            }
+          });
+
        app.post('/newsUser' , async(req , res) =>{
         const newNewsUser = req.body;
-        console.log(newNewsUser)
+       
         const result =await newsUserCollection.insertOne(newNewsUser);
         res.send(result)
        });
 
 
-       app.patch('/newsUser' , async(req , res) =>{
+       app.patch('/newsUser/:id' , async(req , res) =>{
         const email = req.body.email;
-        const filter = {email};
+        const filter = { _id: new ObjectId(req.params.id)};
         const UpdatedDoc ={
             $set:{
-                lastLogInTime : req.body?.lastLogInTime
+                role : req.body?.role,
+                
             }
         }
         const result = await newsUserCollection.updateOne(filter , UpdatedDoc);
